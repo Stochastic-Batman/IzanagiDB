@@ -1,0 +1,26 @@
+# --- System / IDE ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# --- Python (Backend) ---
+backend/izanagi_venv/
+**/__pycache__/
+*.py[cod]
+*$py.class
+.env
+.pytest_cache/
+
+# --- Node / SvelteKit (Frontend) ---
+frontend/node_modules/
+frontend/.svelte-kit/
+frontend/build/
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+
+# --- Docker & Databases ---
+# Ignore local database storage if you map volumes to local folders
+docker/data/
+*.log
