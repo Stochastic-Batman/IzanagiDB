@@ -21,5 +21,5 @@ class Base(DeclarativeBase):
 
 # apparently, dependency for FastAPI routes
 async def get_db():
-    async with AsyncSessionLoader() as session:
+    async with AsyncSessionLocal() as session:
         yield session
