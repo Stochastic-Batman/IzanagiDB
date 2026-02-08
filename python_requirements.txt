@@ -1,10 +1,15 @@
-bcrypt==4.2.0              # Securely hashes user passwords for storage in PostgreSQL
-fastapi[standard]==0.115   # The core web framework used to build the IzanagiDB logic
-motor==3.6.0               # Asynchronous Python driver for interacting with MongoDB (The Warehouse)
-passlib[bcrypt]==1.7.4     # High-level library for handling password hashing and verification
-psycopg[binary]            # PostgreSQL adapter to manage users and document history (The Librarian)
-pydantic-settings==2.6.1   # Manages environment variables and configuration for the backend
-PyJWT[crypto]==2.10.1      # Handles RS256 JWT generation and verification for secure authentication
-python-jose[cryptography]  # Generates and verifies JWT "Digital Keys" for secure access
-python-multipart==0.0.12   # Required for FastAPI to handle form data during user login
-sqlalchemy==2.0.36         # SQL toolkit and ORM used to communicate with the PostgreSQL database
+# Core Framework
+fastapi[standard]>=0.115.0  # Includes FastAPI, Uvicorn, and Pydantic v2
+
+# Database Operations
+sqlalchemy>=2.0.36          # ORM for PostgreSQL (async support)
+psycopg[binary]>=3.1.0      # The actual driver enabling Python to talk to PostgreSQL
+motor>=3.6.0                # Async driver for MongoDB
+
+# Authentication & Security
+PyJWT[crypto]>=2.10.0       # Handles RS256 JWT creation and validation
+passlib[bcrypt]>=1.7.4      # High-level password hashing helper (uses bcrypt backend)
+python-multipart>=0.0.12    # Required by FastAPI to parse login form data
+
+# Utilities
+pydantic-settings>=2.6.0    # Manages environment variables cleanly

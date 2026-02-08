@@ -46,7 +46,6 @@ I need to connect these databases to the FastAPI backend and ensure they stay pe
 * **The Python Connection:** I will use **SQLAlchemy 2.0** with async support to map my Python 3.14 classes to PostgreSQL tables. For MongoDB, I'll use **Motor** to handle asynchronous connections from FastAPI.
 
 
-* **The Dependency Update:** Since I am switching to **PyJWT** for RS256 support, I must update my `python_requirements.txt` and install it instead of `python-jose`.
 * **Docker Persistence:** To prevent my data from vanishing when I stop the containers, I will use **Volumes** in my `docker-compose.yml`. I'll map local folders on my machine to the internal storage paths of the databases.
 
 

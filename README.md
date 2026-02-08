@@ -75,15 +75,6 @@ izanagi_venv\Scripts\activate     # Windows
 
 3. Install Core Libraries:
 
-Install FastAPI along with the standard production server (Uvicorn) and database drivers for the hybrid PostgreSQL/MongoDB setup:
-
-Bash
-```Bash
-pip install "fastapi[standard]" motor sqlalchemy "psycopg[binary]" "passlib[bcrypt]" "pyjwt[crypto]" "python-jose[cryptography]"
-```
-
-or:
-
 ```Bash
 pip install -r python_requirements.txt
 ```
