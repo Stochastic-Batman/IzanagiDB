@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30
 
-    tables_config = SettingsConfigDict(
+    model_config = SettingsConfigDict(
         env_file="../.env",
         case_sensitive=True
     )
