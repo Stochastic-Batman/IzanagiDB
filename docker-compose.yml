@@ -1,0 +1,87 @@
+version: '3.8'
+
+services:
+  postgre:
+    image: postgres:18
+    container_name: izanagi_postgres
+    environment:
+      POSTGRES_USER: izanagi_user
+      POSTGRES_PASSWORD: izanagi_pass
+      POSTGRES_DB: izanagi_db
+    ports:
+      - "5432:5432"  # Expose to host for debugging
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/app/create_databases.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U izanagi_user -d izanagi_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mongo:
+    image: mongo:8
+    container_name: izanagi_mongo
+    ports:
+      - "27017:27017"  # Expose to host for debugging
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # FastAPI Backend (The "Brain")
+  brain:
+    build: ./backend
+    container_name: izanagi_backend
+    environment:
+      POSTGRES_HOST: postgre
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: izanagi_user
+      POSTGRES_PASSWORD: izanagi_pass
+      POSTGRES_DB: izanagi_db
+      MONGO_HOST: mongo
+      MONGO_PORT: 27017
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/app:/app
+    depends_on:
+      postgre:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+    networks:
+      - app-network
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+  # SvelteKit Frontend (The "UI")
+  frontend:
+    build: ./frontend
+    container_name: izanagi_frontend
+    ports:
+      - "7999:7999"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules  # Prevent node_modules from being overwritten
+    environment:
+      - VITE_API_URL=http://localhost:8000
+    depends_on:
+      - brain
+    networks:
+      - app-network
+    command: npm run dev -- --host 0.0.0.0 --port 7999
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  mongo_data:

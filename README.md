@@ -51,11 +51,41 @@ IzanagiDB/
 ```
 ---
 
-# 🛠️ Environment Setup & Installation
+## 🛠️ Environment Setup & Installation
 
 This project is built using the latest features of Python 3.14 and SvelteKit. It is assumed that Python 3.14 is already installed on your system.
 
-## Backend Setup (FastAPI)
+---
+
+### Environment Configuration
+
+The backend requires environment variables for database connections and JWT authentication. The `.env` file is gitignored, so add one of your own, whose content looks like this:
+
+```Bash
+POSTGRES_HOST=postgre
+POSTGRES_PORT=5432
+POSTGRES_USER=izanagi_user
+POSTGRES_PASSWORD=izanagi_pass
+POSTGRES_DB=izanagi_db
+
+MONGO_HOST=mongo
+MONGO_PORT=27017
+
+# JWT Configuration (Generate your own secrets!)
+JWT_SECRET_KEY=dev-secret-key-replace-in-production
+JWT_ALGORITHM=RS256
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+REFRESH_TOKEN_EXPIRE_DAYS=30
+```
+
+For testing, you can keep `JWT_SECRET_KEY` as it is, but you can also generate a value with:
+
+```Bash
+python3 -c "import secrets; print(secrets.token_urlsafe(32))"
+```
+
+
+### Backend Setup (FastAPI)
 
 We use a dedicated virtual environment to manage dependencies and ensure version consistency.
 
@@ -79,7 +109,7 @@ izanagi_venv\Scripts\activate     # Windows
 pip install -r python_requirements.txt
 ```
 
-## Frontend Setup (SvelteKit)
+### Frontend Setup (SvelteKit)
 
 SvelteKit acts as the modern framework for our Svelte 5 components. It manages routing and communicates with the FastAPI backend via API calls.
 
@@ -105,7 +135,7 @@ npm install diff
 To avoid CORS issues during development, ensure your SvelteKit `fetch` calls point to the FastAPI default port (`http://localhost:8000`).
 
 
-## Database & Orchestration
+### Database & Orchestration
 
 Since IzanagiDB relies on a hybrid database approach, the easiest way to get the environment ready is through Docker, as defined in the `docker-compose.yml`.
 
