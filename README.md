@@ -1,7 +1,7 @@
 # 👁️ IzanagiDB
 
 <p align="center">
-  <img src="IzanagiDB_logo.png" alt="IzanagiDB Logo" width="200">
+  <img src="images_for_documentation/IzanagiDB_logo.png" alt="IzanagiDB Logo" width="200">
 </p>
 
 **IzanagiDB** is a tool that lets you save different versions of your document. Instead of just overwriting a file, it saves every change you make.
@@ -79,7 +79,7 @@ Install FastAPI along with the standard production server (Uvicorn) and database
 
 Bash
 ```Bash
-pip install "fastapi[standard]" motor sqlalchemy "psycopg[binary]" "passlib[bcrypt]" "python-jose[cryptography]"
+pip install "fastapi[standard]" motor sqlalchemy "psycopg[binary]" "passlib[bcrypt]" "pyjwt[crypto]" "python-jose[cryptography]"
 ```
 
 or:

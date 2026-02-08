@@ -4,6 +4,7 @@ motor==3.6.0               # Asynchronous Python driver for interacting with Mon
 passlib[bcrypt]==1.7.4     # High-level library for handling password hashing and verification
 psycopg[binary]            # PostgreSQL adapter to manage users and document history (The Librarian)
 pydantic-settings==2.6.1   # Manages environment variables and configuration for the backend
+PyJWT[crypto]==2.10.1      # Handles RS256 JWT generation and verification for secure authentication
 python-jose[cryptography]  # Generates and verifies JWT "Digital Keys" for secure access
 python-multipart==0.0.12   # Required for FastAPI to handle form data during user login
 sqlalchemy==2.0.36         # SQL toolkit and ORM used to communicate with the PostgreSQL database
