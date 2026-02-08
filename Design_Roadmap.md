@@ -70,7 +70,13 @@ I'll build the API logic first and test it using the built-in FastAPI `/docs` (S
 
 ## Phase 4: Frontend Development (Svelte 5)
 
-Once the API is ready, I will build the user interface on Port 7999 (I chose this particular port for no reason).
+I will build the user interface on Port 7999 (I chose this particular port for no reason). I think I should alternate between backend and frontend, so that backend provides functionality, frontend builds on it and then I can test how the component works.
+
+* **4 pages:**
+  1. Home - what the project is about; note that this is a side project; explanation of the name: Izanagi (from the Naruto anime) is a forbidden Uchiha-clan genjutsu that allows the user to warp reality and negate fatal damage, sacrificing their Sharingan in the process.
+  2. Log in / Sign up.
+  3. A page where users can see a list of their documents (either owned by them or shared with them).
+  4. Document viewer / editor.
 
 * **State Management:** I will use Svelte 5 runes (`$state`, `$derived`) to handle the document editing and version history in real-time.
 
