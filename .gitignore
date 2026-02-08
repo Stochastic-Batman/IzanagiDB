@@ -24,3 +24,6 @@ frontend/.env.*
 # Ignore local database storage if you map volumes to local folders
 docker/data/
 *.log
+
+# --- Project Specific ---
+QA
