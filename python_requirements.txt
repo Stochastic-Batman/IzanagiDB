@@ -1,15 +1,16 @@
 # Core Framework
-fastapi[standard]>=0.115.0  # Includes FastAPI, Uvicorn, and Pydantic v2
+fastapi[standard]>=0.115.0        # Includes FastAPI, Uvicorn, and Pydantic v2
 
 # Database Operations
-sqlalchemy>=2.0.36          # ORM for PostgreSQL (async support)
-psycopg[binary]>=3.1.0      # The actual driver enabling Python to talk to PostgreSQL
-motor>=3.6.0                # Async driver for MongoDB
+sqlalchemy>=2.0.36                # ORM for PostgreSQL (async support)
+psycopg[binary]>=3.1.0            # The actual driver enabling Python to talk to PostgreSQL
+motor>=3.6.0                      # Async driver for MongoDB
 
 # Authentication & Security
-PyJWT[crypto]>=2.10.0       # Handles RS256 JWT creation and validation
-passlib[bcrypt]>=1.7.4      # High-level password hashing helper (uses bcrypt backend)
-python-multipart>=0.0.12    # Required by FastAPI to parse login form data
+PyJWT[crypto]>=2.10.0             # Handles RS256 JWT creation and validation
+passlib[bcrypt]>=1.7.4            # High-level password hashing helper (uses bcrypt backend)
+python-multipart>=0.0.12          # Required by FastAPI to parse login form data
+python-jose[cryptography]>=3.3.0  # For JWT Support
 
 # Utilities
-pydantic-settings>=2.6.0    # Manages environment variables cleanly
+pydantic-settings>=2.6.0          # Manages environment variables cleanly
