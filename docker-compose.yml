@@ -11,8 +11,7 @@ services:
     ports:
       - "5432:5432"  # Expose to host for debugging
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./backend/app/create_databases.sql:/docker-entrypoint-initdb.d/init.sql
+      - postgres_data:/var/lib/postgresql
     networks:
       - app-network
     healthcheck:
@@ -38,7 +37,9 @@ services:
 
   # FastAPI Backend (The "Brain")
   brain:
-    build: ./backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
     container_name: izanagi_backend
     environment:
       POSTGRES_HOST: postgre
