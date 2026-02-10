@@ -71,19 +71,11 @@ POSTGRES_DB=izanagi_db
 MONGO_HOST=mongo
 MONGO_PORT=27017
 
-# JWT Configuration (Generate your own secrets!)
-JWT_SECRET_KEY=dev-secret-key-replace-in-production
+# JWT Configuration
 JWT_ALGORITHM=RS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 REFRESH_TOKEN_EXPIRE_DAYS=30
 ```
-
-For testing, you can keep `JWT_SECRET_KEY` as it is, but you can also generate a value with:
-
-```Bash
-python3 -c "import secrets; print(secrets.token_urlsafe(32))"
-```
-
 
 ### Backend Setup (FastAPI)
 
@@ -114,7 +106,8 @@ pip install -r python_requirements.txt
 IzanagiDB uses RS256 (RSA asymmetric encryption) for JWT tokens. You need to generate a private/public key pair before starting the backend. These keys will be saved in `backend/` directory, but their paths are added in `.gitignore`. Simply run:
 
 ```Bash
-python3.14 generate_keys.py
+cd backend/app
+python3.14 ../../generate_keys.py
 ```
 
 ### Frontend Setup (SvelteKit)

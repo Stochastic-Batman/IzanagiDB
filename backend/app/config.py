@@ -15,7 +15,6 @@ class Settings(BaseSettings):
     MONGO_PORT: int = 27017
 
     # JWT
-    JWT_SECRET_KEY: str = "oM2zFvsrH9UtEiolhbZoVe-dPbyOzEHZNIwntMHuzk0"
     JWT_ALGORITHM: str = "RS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30
@@ -27,13 +26,17 @@ class Settings(BaseSettings):
 
     @property
     def JWT_PRIVATE_KEY(self) -> str:
-        key_path = Path(__file__).parent / "private_key.pem"
-        return key_path.read_text()
+        path = Path("/app/private_key.pem")
+        if not path.exists():
+            raise RuntimeError("JWT private key not found at /app/private_key.pem")
+        return path.read_text()
 
     @property
     def JWT_PUBLIC_KEY(self) -> str:
-        key_path = Path(__file__).parent / "public_key.pem"
-        return key_path.read_text()
+        path = Path("/app/public_key.pem")
+        if not path.exists():
+            raise RuntimeError("JWT public key not found at /app/public_key.pem")
+        return path.read_text()
 
 
 settings = Settings()

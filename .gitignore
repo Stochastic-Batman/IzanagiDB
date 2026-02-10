@@ -25,6 +25,6 @@ frontend/.env.*
 docker/data/
 *.log
 
-# J--- WT RSA Keys ---
-backend/private_key.pem
-backend/public_key.pem
+# --- JWT RSA Keys ---
+backend/app/private_key.pem
+backend/app/public_key.pem
