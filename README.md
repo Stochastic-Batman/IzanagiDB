@@ -109,6 +109,14 @@ izanagi_venv\Scripts\activate     # Windows
 pip install -r python_requirements.txt
 ```
 
+### Generate JWT RSA Keys
+
+IzanagiDB uses RS256 (RSA asymmetric encryption) for JWT tokens. You need to generate a private/public key pair before starting the backend. These keys will be saved in `backend/` directory, but their paths are added in `.gitignore`. Simply run:
+
+```Bash
+python3.14 generate_keys.py
+```
+
 ### Frontend Setup (SvelteKit)
 
 SvelteKit acts as the modern framework for our Svelte 5 components. It manages routing and communicates with the FastAPI backend via API calls.

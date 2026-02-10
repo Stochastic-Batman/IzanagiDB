@@ -1,3 +1,4 @@
+from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -23,6 +24,16 @@ class Settings(BaseSettings):
         env_file="../.env",
         case_sensitive=True
     )
+
+    @property
+    def JWT_PRIVATE_KEY(self) -> str:
+        key_path = Path(__file__).parent / "private_key.pem"
+        return key_path.read_text()
+
+    @property
+    def JWT_PUBLIC_KEY(self) -> str:
+        key_path = Path(__file__).parent / "public_key.pem"
+        return key_path.read_text()
 
 
 settings = Settings()
