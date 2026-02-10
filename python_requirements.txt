@@ -8,6 +8,7 @@ motor>=3.6.0                      # Async driver for MongoDB
 
 # Authentication & Security
 PyJWT[crypto]>=2.10.0             # Handles RS256 JWT creation and validation
+bcrypt==4.1.2                     # Pin to version compatible with passlib
 passlib[bcrypt]>=1.7.4            # High-level password hashing helper (uses bcrypt backend)
 python-multipart>=0.0.12          # Required by FastAPI to parse login form data
 python-jose[cryptography]>=3.3.0  # For JWT Support
