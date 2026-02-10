@@ -1,7 +1,10 @@
+import os
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
 
+
+output_dir = os.getcwd()
 
 private_key = rsa.generate_private_key(
     public_exponent=65537,
@@ -24,10 +27,13 @@ public_pem = public_key.public_bytes(
     format=serialization.PublicFormat.SubjectPublicKeyInfo
 )
 
-with open('backend/private_key.pem', 'wb') as f:
-    f.write(private_pem)
-    print("Generated backend/private_key.pem")
+private_path = os.path.join(output_dir, "private_key.pem")
+public_path = os.path.join(output_dir, "public_key.pem")
 
-with open('backend/public_key.pem', 'wb') as f:
+with open(private_path, 'wb') as f:
+    f.write(private_pem)
+    print(f"Generated {private_path}")
+
+with open(public_path, 'wb') as f:
     f.write(public_pem)
-    print("Generated backend/public_key.pem")
+    print(f"Generated {public_path}")
