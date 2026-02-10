@@ -15,3 +15,6 @@ python-jose[cryptography]>=3.3.0  # For JWT Support
 
 # Utilities
 pydantic-settings>=2.6.0          # Manages environment variables cleanly
+
+# Document Version Control
+jsonpatch>=1.33                   # JSON Patch (RFC 6902) for delta storage

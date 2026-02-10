@@ -90,13 +90,15 @@ I will build the user interface on Port 7999 (I chose this particular port for n
 
 ## Answers to My Technical Implementation Questions
 
-* **How do I keep state in Docker?** I'll define **volumes** in my `docker-compose.yml`. This maps the database's internal data to my physical hard drive so that my documents and users are saved even if the containers are rebuilt.
+* **How do I keep state in Docker?** - I'll define **volumes** in my `docker-compose.yml`. This maps the database's internal data to my physical hard drive so that my documents and users are saved even if the containers are rebuilt.
 
 
-* **How should I connect the databases?** I'll use **SQLAlchemy 2.0** for the PostgreSQL "Librarian" and **Motor** for the MongoDB "Warehouse" to keep the FastAPI backend non-blocking.
+* **How should I connect the databases?** - I'll use **SQLAlchemy 2.0** for the PostgreSQL "Librarian" and **Motor** for the MongoDB "Warehouse" to keep the FastAPI backend non-blocking.
 
 
-* **Is my Auth strategy correct?** Yes. Using **RS256** is more secure than HS256 because it uses private/public key pairs. Storing the **Refresh Token** in PostgreSQL is correct because it allows me to revoke access if a token is compromised. Using `httpOnly` cookies is the gold standard for preventing JavaScript from stealing tokens.
+* **Is my Auth strategy correct?** - Yes. Using **RS256** is more secure than HS256 because it uses private/public key pairs. Storing the **Refresh Token** in PostgreSQL is correct because it allows me to revoke access if a token is compromised. Using `httpOnly` cookies is the gold standard for preventing JavaScript from stealing tokens.
 
 
-* **Should I build the UI first?** No, I should build the API backbone first. This gives my Svelte 5 frontend a real data source to interact with, which makes developing the document viewer and diff logic much easier to test.
+* **Should I build the UI first?** - No, I should build the API backbone first. This gives my Svelte 5 frontend a real data source to interact with, which makes developing the document viewer and diff logic much easier to test.
+
+* **How do I handle version control?** - Use RFC 6902, the standard that defines JSON Patch, a format for describing changes to a JSON document. The entire sequence of operations must succeed for any changes to be saved; if any operation fails, the whole patch is unsuccessful.

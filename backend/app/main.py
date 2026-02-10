@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from database import Base, document_contents, engine, mongo_client
 from fastapi import FastAPI
 from routes.auth import router as auth_router
+from routes.documents import router as documents_router
 
 
 logger = logging.getLogger(__name__)
@@ -34,3 +35,4 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 app.include_router(auth_router)
+app.include_router(documents_router)
