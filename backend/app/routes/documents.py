@@ -486,7 +486,7 @@ async def get_version(document_id: int, version_number: int, current_user: User 
         # Latest version - return directly
         content = mongo_doc.get("content")
     else:
-        # Old version with reverse delta - apply to current snapshot
+        # Old version with reverse delta - need to apply all patches from current to this version
         result = await db.execute(
             select(Document).where(Document.document_id == document_id)
         )
@@ -502,22 +502,23 @@ async def get_version(document_id: int, version_number: int, current_user: User 
         
         # Get current snapshot
         current_mongo = await document_contents.find_one({"_id": ObjectId(current_version.mongo_id)})
-        current_content = current_mongo.get("content")
-        
-        # Apply all reverse patches to reconstruct old (target) version
+        content = current_mongo.get("content")
+       
+        # Apply all reverse patches from current down to requested version
         for v in range(doc.current_version_number - 1, version_number - 1, -1):
             result = await db.execute(
                 select(Version).where(
                     Version.document_id == document_id,
-                    Version.version_number == v - 1
+                    Version.version_number == v
                 )
             )
             old_version = result.scalar_one_or_none()
-            old_mongo = await document_contents.find_one({"_id": ObjectId(old_version.mongo_id)})
             
-            if old_mongo.get("type") == "delta":
-                patch = jsonpatch.JsonPatch(old_mongo.get("patch"))
-                content = patch.apply(content)
+            if old_version:
+                old_mongo = await document_contents.find_one({"_id": ObjectId(old_version.mongo_id)})
+                if old_mongo.get("type") == "delta":
+                    reverse_patch = jsonpatch.JsonPatch(old_mongo.get("patch"))
+                    content = reverse_patch.apply(content)
     
     return {
         "document_id": document_id,
