@@ -183,15 +183,15 @@ async def commit_version(document_id: int, commit_data: DocumentCommit, current_
     old_mongo_doc = await document_contents.find_one({"_id": ObjectId(current_version.mongo_id)})
     old_content = old_mongo_doc.get("content")
     
-    # Calculate delta (patch from old to new)
-    patch = jsonpatch.make_patch(old_content, commit_data.content)
+    # Calculate delta (patch from new to old)
+    reverse_patch = jsonpatch.make_patch(commit_data.content, old_content)
     
-    # Update old version to store delta instead of snapshot
+    # Update old version to store reverse delta instead of snapshot
     await document_contents.update_one(
         {"_id": ObjectId(current_version.mongo_id)},
         {"$set": {
             "type": "delta",
-            "patch": patch.patch  # Store the JSON patch
+            "patch": reverse_patch.patch
         }}
     )
     
@@ -289,37 +289,29 @@ async def get_version(document_id: int, version_number: int, current_user: User 
         # Latest version - return directly
         content = mongo_doc.get("content")
     else:
-        # Old version - reconstruct by applying patches forward
+        # Old version with reverse delta - apply to current snapshot
         # Get all versions from this one to current
         result = await db.execute(
-            select(Version)
-            .where(
-                Version.document_id == document_id,
-                Version.version_number >= version_number
-            )
-            .order_by(Version.version_number)
+            select(Document).where(Document.document_id == document_id)
         )
-        versions_to_apply = result.scalars().all()
+        doc = result.scalar_one_or_none()
+
+        result = await db.execute(
+            select(Version).where(
+                Version.document_id == document_id,
+                Version.version_number == doc.current_version_number
+            )
+        )
+        current_version = result.scalar_one_or_none()
         
-        # Start with this version's content (delta)
-        content = None
-        patches_to_apply = []
+        # Get current snapshot
+        current_mongo = await document_contents.find_one({"_id": ObjectId(current_version.mongo_id)})
+        current_content = current_mongo.get("content")
         
-        # Collect all patches
-        for v in versions_to_apply:
-            v_mongo = await document_contents.find_one({"_id": ObjectId(v.mongo_id)})
-            if v_mongo.get("type") == "snapshot":
-                content = v_mongo.get("content")
-                break
-            else:
-                patches_to_apply.insert(0, v_mongo.get("patch"))
+        # Apply reverse patch to reconstruct old version
+        reverse_patch = jsonpatch.JsonPatch(mongo_doc.get("patch"))
+        content = reverse_patch.apply(current_content)
         
-        # Apply patches in reverse order to reconstruct
-        if content and patches_to_apply:
-            for patch_data in reversed(patches_to_apply):
-                patch = jsonpatch.JsonPatch(patch_data)
-                content = patch.apply(content, in_place=False)
-    
     return {
         "document_id": document_id,
         "version_number": version_number,
