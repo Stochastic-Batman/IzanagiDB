@@ -9,7 +9,7 @@ from sqlalchemy import select
 
 from database import get_db, document_contents
 from dependencies import get_current_user
-from schemas import DocumentCreate, DocumentCommit, DocumentResponse, VersionResponse
+from schemas import DocumentCreate, DocumentCommit, DocumentResponse, VersionResponse, DocumentUpdate, DocumentShare
 from tables import User, Document, DocumentOwner, Version
 
 
@@ -93,7 +93,6 @@ async def get_document(document_id: int, current_user: User = Depends(get_curren
             DocumentOwner.user_id == current_user.user_id
         )
     )
-
     if not result.scalar_one_or_none():
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -146,7 +145,6 @@ async def commit_version(document_id: int, commit_data: DocumentCommit, current_
             DocumentOwner.user_id == current_user.user_id
         )
     )
-
     if not result.scalar_one_or_none():
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -176,22 +174,21 @@ async def commit_version(document_id: int, commit_data: DocumentCommit, current_
             Version.version_number == doc.current_version_number
         )
     )
-    
     current_version = result.scalar_one_or_none()
     
     # Fetch current content from MongoDB
     old_mongo_doc = await document_contents.find_one({"_id": ObjectId(current_version.mongo_id)})
     old_content = old_mongo_doc.get("content")
     
-    # Calculate delta (patch from new to old)
+    # Calculate REVERSE patch (new → old) for reconstruction
     reverse_patch = jsonpatch.make_patch(commit_data.content, old_content)
     
-    # Update old version to store reverse delta instead of snapshot
+    # Update old version to store reverse delta
     await document_contents.update_one(
         {"_id": ObjectId(current_version.mongo_id)},
         {"$set": {
             "type": "delta",
-            "patch": reverse_patch.patch
+            "patch": reverse_patch.patch  # Reverse patch: can reconstruct old from new
         }}
     )
     
@@ -237,7 +234,6 @@ async def list_versions(document_id: int, current_user: User = Depends(get_curre
             DocumentOwner.user_id == current_user.user_id
         )
     )
-
     if not result.scalar_one_or_none():
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -250,22 +246,215 @@ async def list_versions(document_id: int, current_user: User = Depends(get_curre
         .where(Version.document_id == document_id)
         .order_by(Version.version_number.desc())
     )
-
     versions = result.scalars().all()
     
     return [VersionResponse.model_validate(v) for v in versions]
 
 
-@router.get("/{document_id}/versions/{version_number}")
-async def get_version(document_id: int, version_number: int, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    """Get specific version content (reconstructs from deltas if needed)."""
+@router.patch("/{document_id}", response_model=DocumentResponse)
+async def update_document(document_id: int, update_data: DocumentUpdate, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    """Update document title."""
     
     # Check ownership
     result = await db.execute(
         select(DocumentOwner)
-        .where(DocumentOwner.document_id == document_id, DocumentOwner.user_id == current_user.user_id)
+        .where(
+            DocumentOwner.document_id == document_id,
+            DocumentOwner.user_id == current_user.user_id
+        )
     )
+    if not result.scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied"
+        )
+    
+    # Get document
+    result = await db.execute(select(Document).where(Document.document_id == document_id))
+    doc = result.scalar_one_or_none()
+    
+    if not doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document not found"
+        )
+    
+    # Update title if provided
+    if update_data.title:
+        doc.title = update_data.title
+        doc.last_modified_at = datetime.now(timezone.utc)
+        doc.last_modified_by = current_user.user_id
+    
+    await db.commit()
+    await db.refresh(doc)
+    
+    logger.info(f"Document {document_id} updated by user {current_user.user_id}")
+    return DocumentResponse.model_validate(doc)
 
+
+@router.post("/{document_id}/share")
+async def share_document(document_id: int, share_data: DocumentShare, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    """Share document with another user."""
+    
+    # Check ownership
+    result = await db.execute(
+        select(DocumentOwner)
+        .where(
+            DocumentOwner.document_id == document_id,
+            DocumentOwner.user_id == current_user.user_id
+        )
+    )
+    if not result.scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied"
+        )
+    
+    # Find user to share with
+    result = await db.execute(
+        select(User).where(User.username == share_data.username)
+    )
+    target_user = result.scalar_one_or_none()
+    
+    if not target_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    # Check if already shared
+    result = await db.execute(
+        select(DocumentOwner)
+        .where(
+            DocumentOwner.document_id == document_id,
+            DocumentOwner.user_id == target_user.user_id
+        )
+    )
+    if result.scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Document already shared with this user"
+        )
+    
+    # Add new owner
+    new_owner = DocumentOwner(document_id=document_id, user_id=target_user.user_id)
+    db.add(new_owner)
+    await db.commit()
+    
+    logger.info(f"Document {document_id} shared with user {target_user.user_id}")
+    return {"message": f"Document shared with {share_data.username}"}
+
+
+@router.delete("/{document_id}/share/{user_id}")
+async def unshare_document(document_id: int, user_id: int, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    """Remove user from document owners."""
+    
+    # Check ownership
+    result = await db.execute(
+        select(DocumentOwner)
+        .where(
+            DocumentOwner.document_id == document_id,
+            DocumentOwner.user_id == current_user.user_id
+        )
+    )
+    if not result.scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied"
+        )
+    
+    # Can't remove yourself if you're the only owner
+    result = await db.execute(
+        select(DocumentOwner)
+        .where(DocumentOwner.document_id == document_id)
+    )
+    owners = result.scalars().all()
+    
+    if len(owners) == 1 and owners[0].user_id == current_user.user_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot remove last owner. Delete document instead."
+        )
+    
+    # Remove owner
+    result = await db.execute(
+        select(DocumentOwner)
+        .where(
+            DocumentOwner.document_id == document_id,
+            DocumentOwner.user_id == user_id
+        )
+    )
+    owner = result.scalar_one_or_none()
+    
+    if not owner:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User is not an owner of this document"
+        )
+    
+    await db.delete(owner)
+    await db.commit()
+    
+    logger.info(f"User {user_id} removed from document {document_id}")
+    return {"message": "User removed from document"}
+
+
+@router.delete("/{document_id}")
+async def delete_document(document_id: int, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    """Delete a document and all its versions."""
+    
+    # Check ownership
+    result = await db.execute(
+        select(DocumentOwner)
+        .where(
+            DocumentOwner.document_id == document_id,
+            DocumentOwner.user_id == current_user.user_id
+        )
+    )
+    if not result.scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied"
+        )
+    
+    result = await db.execute(select(Document).where(Document.document_id == document_id))
+    doc = result.scalar_one_or_none()
+    
+    if not doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document not found"
+        )
+    
+    # Get all versions to delete from MongoDB
+    result = await db.execute(
+        select(Version).where(Version.document_id == document_id)
+    )
+    versions = result.scalars().all()
+    
+    for version in versions:
+        await document_contents.delete_one({"_id": ObjectId(version.mongo_id)})
+    
+    # Delete from PostgreSQL (cascade will handle versions and owners)
+    await db.delete(doc)
+    await db.commit()
+    
+    logger.info(f"Document {document_id} deleted by user {current_user.user_id}")
+    return {"message": "Document deleted"}
+
+
+@router.get("/{document_id}/versions/{version_number}")
+async def get_version(document_id: int, version_number: int, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    """Get specific version content (reconstructs from deltas if needed)."""
+     
+    # Check ownership
+    result = await db.execute(
+        select(DocumentOwner)
+        .where(
+            DocumentOwner.document_id == document_id,
+            DocumentOwner.user_id == current_user.user_id
+        )
+    )
     if not result.scalar_one_or_none():
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -273,7 +462,12 @@ async def get_version(document_id: int, version_number: int, current_user: User 
         )
     
     # Get requested version
-    result = await db.execute(select(Version).where(Version.document_id == document_id, Version.version_number == version_number))
+    result = await db.execute(
+        select(Version).where(
+            Version.document_id == document_id,
+            Version.version_number == version_number
+        )
+    )
     version = result.scalar_one_or_none()
     
     if not version:
@@ -290,12 +484,11 @@ async def get_version(document_id: int, version_number: int, current_user: User 
         content = mongo_doc.get("content")
     else:
         # Old version with reverse delta - apply to current snapshot
-        # Get all versions from this one to current
         result = await db.execute(
             select(Document).where(Document.document_id == document_id)
         )
         doc = result.scalar_one_or_none()
-
+        
         result = await db.execute(
             select(Version).where(
                 Version.document_id == document_id,
@@ -311,7 +504,7 @@ async def get_version(document_id: int, version_number: int, current_user: User 
         # Apply reverse patch to reconstruct old version
         reverse_patch = jsonpatch.JsonPatch(mongo_doc.get("patch"))
         content = reverse_patch.apply(current_content)
-        
+    
     return {
         "document_id": document_id,
         "version_number": version_number,

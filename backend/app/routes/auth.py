@@ -1,14 +1,14 @@
 import logging
-
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Cookie
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from typing import Optional
 
 from database import get_db
+from dependencies import get_current_user
+from schemas import UserCreate, UserLogin, UserResponse, TokenResponse, UserSearchResult
 from tables import User, RefreshToken
-from schemas import UserCreate, UserLogin, UserResponse, TokenResponse
 from auth import (
     hash_password,
     verify_password,
@@ -17,12 +17,13 @@ from auth import (
     get_refresh_token_expiry
 )
 
-
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 
+# Dependency to extract refresh token from cookie
 async def get_refresh_token_from_cookie(refresh_token: Optional[str] = Cookie(None)) -> str:
+    """Extract refresh token from httpOnly cookie."""
     if not refresh_token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -33,6 +34,8 @@ async def get_refresh_token_from_cookie(refresh_token: Optional[str] = Cookie(No
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
+    """Register a new user."""
+    
     # Check if username already exists
     result = await db.execute(select(User).where(User.username == user_data.username))
     if result.scalar_one_or_none():
@@ -66,6 +69,8 @@ async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
 
 @router.post("/login", response_model=TokenResponse)
 async def login(user_credentials: UserLogin, response: Response, db: AsyncSession = Depends(get_db)):
+    """Login and receive access token + refresh token (in httpOnly cookie)."""
+    
     # Find user by username
     result = await db.execute(select(User).where(User.username == user_credentials.username))
     user = result.scalar_one_or_none()
@@ -98,7 +103,7 @@ async def login(user_credentials: UserLogin, response: Response, db: AsyncSessio
         key="refresh_token",
         value=refresh_token_hex,
         httponly=True,
-        secure=False,  # Should be set to True in production with HTTPS
+        secure=False,  # Set to True in production with HTTPS
         samesite="lax",
         max_age=2592000  # 30 days in seconds
     )
@@ -109,8 +114,12 @@ async def login(user_credentials: UserLogin, response: Response, db: AsyncSessio
 
 @router.post("/refresh", response_model=TokenResponse)
 async def refresh_access_token(response: Response, refresh_token: str = Depends(get_refresh_token_from_cookie), db: AsyncSession = Depends(get_db)):
+    """Refresh access token using refresh token from cookie."""
+    
     # Find refresh token in database
-    result = await db.execute(select(RefreshToken).where(RefreshToken.token_hex == refresh_token))
+    result = await db.execute(
+        select(RefreshToken).where(RefreshToken.token_hex == refresh_token)
+    )
     db_token = result.scalar_one_or_none()
     
     if not db_token:
@@ -146,10 +155,14 @@ async def refresh_access_token(response: Response, refresh_token: str = Depends(
 
 
 @router.post("/logout")
-async def logout(response: Response, refresh_token: Optional[str] = Cookie(None), db: AsyncSession = Depends(get_db)):
+async def logout(response: Response, db: AsyncSession = Depends(get_db), refresh_token: Optional[str] = Cookie(None)):
+    """Logout by revoking refresh token."""
+    
     if refresh_token:
         # Delete refresh token from database
-        result = await db.execute(select(RefreshToken).where(RefreshToken.token_hex == refresh_token))
+        result = await db.execute(
+            select(RefreshToken).where(RefreshToken.token_hex == refresh_token)
+        )
         db_token = result.scalar_one_or_none()
         
         if db_token:
@@ -161,3 +174,20 @@ async def logout(response: Response, refresh_token: Optional[str] = Cookie(None)
     
     logger.info("User logged out")
     return {"message": "Successfully logged out"}
+
+
+@router.get("/users/search", response_model=list[UserSearchResult])
+async def search_users(q: str, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    if len(q) < 2:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Search query must be at least 2 characters"
+        )
+    
+    # Search for users matching the query
+    result = await db.execute(
+        select(User).where(User.username.ilike(f"%{q}%")).limit(10)
+    )
+    users = result.scalars().all()
+    
+    return [UserSearchResult.model_validate(u) for u in users]

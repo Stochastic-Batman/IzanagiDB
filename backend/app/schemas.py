@@ -24,6 +24,15 @@ class UserResponse(BaseModel):
         from_attributes = True  # Allows conversion from SQLAlchemy models
 
 
+class UserSearchResult(BaseModel):
+    user_id: int
+    username: str
+    
+    class Config:
+        from_attributes = True
+
+
+
 # Token Schemas
 class TokenResponse(BaseModel):
     access_token: str
@@ -44,6 +53,10 @@ class DocumentCreate(BaseModel):
 class DocumentUpdate(BaseModel):
     title: str | None = Field(None, min_length=1, max_length=255)
     content: dict | None = None
+
+
+class DocumentShare(BaseModel):
+    username: str
 
 
 class DocumentCommit(BaseModel):
