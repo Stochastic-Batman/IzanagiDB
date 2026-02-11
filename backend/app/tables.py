@@ -35,7 +35,7 @@ class Document(Base):
     creator: Mapped["User"] = relationship("User", foreign_keys=[created_by], back_populates="created_documents")
     last_modifier: Mapped["User"] = relationship("User", foreign_keys=[last_modified_by], back_populates="modified_documents")
     owners: Mapped[list["User"]] = relationship("User", secondary="document_owners", back_populates="owned_documents")
-    versions: Mapped[list["Version"]] = relationship("Version", back_populates="document")
+    versions: Mapped[list["Version"]] = relationship("Version", back_populates="document", cascade="all, delete-orphan", passive_deletes=True)
 
 
 class DocumentOwner(Base):

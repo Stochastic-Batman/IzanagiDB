@@ -433,7 +433,10 @@ async def delete_document(document_id: int, current_user: User = Depends(get_cur
     versions = result.scalars().all()
     
     for version in versions:
-        await document_contents.delete_one({"_id": ObjectId(version.mongo_id)})
+        try:
+            await document_contents.delete_one({"_id": ObjectId(version.mongo_id)})
+        except Exception as e:
+            logger.warning(f"Failed to delete MongoDB doc {version.mongo_id}: {e}")
     
     # Delete from PostgreSQL (cascade will handle versions and owners)
     await db.delete(doc)
@@ -501,9 +504,20 @@ async def get_version(document_id: int, version_number: int, current_user: User 
         current_mongo = await document_contents.find_one({"_id": ObjectId(current_version.mongo_id)})
         current_content = current_mongo.get("content")
         
-        # Apply reverse patch to reconstruct old version
-        reverse_patch = jsonpatch.JsonPatch(mongo_doc.get("patch"))
-        content = reverse_patch.apply(current_content)
+        # Apply all reverse patches to reconstruct old (target) version
+        for v in range(doc.current_version_number - 1, version_number - 1, -1):
+            result = await db.execute(
+                select(Version).where(
+                    Version.document_id == document_id,
+                    Version.version_number == v - 1
+                )
+            )
+            old_version = result.scalar_one_or_none()
+            old_mongo = await document_contents.find_one({"_id": ObjectId(old_version.mongo_id)})
+            
+            if old_mongo.get("type") == "delta":
+                patch = jsonpatch.JsonPatch(old_mongo.get("patch"))
+                content = patch.apply(content)
     
     return {
         "document_id": document_id,
