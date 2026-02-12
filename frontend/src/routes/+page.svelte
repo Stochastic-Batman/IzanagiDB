@@ -8,7 +8,7 @@
 	
 	<div class="explanation">
 		<p>
-			Named after the Uchiha forbidden technique, <strong>IzanagiDB</strong> lets you 
+			Named after a forbidden technique from the Uchiha clan (Naruto series), <strong>IzanagiDB</strong> lets you 
 			warp reality by rewinding your documents to any previous state. Every change is 
 			tracked, every version preserved.
 		</p>
@@ -36,7 +36,7 @@
 	</div>
 	
 	<div class="note">
-		<p><em>Note: This is a side project for learning full-stack development.</em></p>
+		<p><em>Note: This is a side project for understanding how to connect databases ➡️ backend, backend ➡️ frontend and containerize them all.</em></p>
 	</div>
 </div>
 

@@ -11,19 +11,13 @@
 	});
 	
 	async function handleLogout() {
-		// Call backend logout endpoint
 		await fetch('http://localhost:8000/auth/logout', {
 			method: 'POST',
 			credentials: 'include'
 		});
 		
-		// Clear local storage
 		localStorage.removeItem('access_token');
-		
-		// Update state
 		isLoggedIn = false;
-		
-		// Redirect to home
 		goto('/');
 	}
 </script>
@@ -36,12 +30,12 @@
 		
 		<div class="nav-links">
 			{#if isLoggedIn}
-				<a href="/documents" class:active={$page.url.pathname === '/documents'}>
-					Documents
+				<a href="/documents" class:active={$page.url.pathname.startsWith('/documents')}>
+           Documents
 				</a>
 				<button onclick={handleLogout} class="logout">Logout</button>
 			{:else}
-				<a href="/auth" class:active={$page.url.pathname === '/auth'}>
+				<a href="/auth" class="login-btn">
 					Login
 				</a>
 			{/if}
@@ -95,7 +89,11 @@
 	
 	.nav-links a.active {
 		background: var(--color-primary);
-	}
+  }
+
+  .login-btn {
+    background: var(--color-primary) !important;
+  }
 	
 	.logout {
 		background: transparent;

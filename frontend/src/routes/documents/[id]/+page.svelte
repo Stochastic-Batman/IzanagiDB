@@ -32,6 +32,10 @@
 	let selectedVersion = $state<number | null>(null);
 	let versionContent = $state<string | null>(null);
 	let showDiff = $state(false);
+	let showShareModal = $state(false);
+	let shareUsername = $state('');
+	let searchResults = $state<{user_id: number, username: string}[]>([]);
+	let searchLoading = $state(false);
 	
 	async function fetchDocument() {
 		const token = localStorage.getItem('access_token');
@@ -140,6 +144,84 @@
 			alert(err instanceof Error ? err.message : 'Failed to commit');
 		}
 	}
+
+	async function searchUsers(query: string) {
+		if (query.length < 2) {
+			searchResults = [];
+			return;
+		}
+		
+		const token = localStorage.getItem('access_token');
+		if (!token) return;
+		
+		searchLoading = true;
+		try {
+			const res = await fetch(`${API_URL}/auth/users/search?q=${encodeURIComponent(query)}`, {
+				headers: { 'Authorization': `Bearer ${token}` },
+				credentials: 'include'
+			});
+			
+			if (!res.ok) throw new Error('Search failed');
+			
+			searchResults = await res.json();
+		} catch (err) {
+			console.error(err);
+		} finally {
+			searchLoading = false;
+		}
+	}
+
+	async function shareDocument(username: string) {
+		const token = localStorage.getItem('access_token');
+		if (!token) return;
+		
+		try {
+			const res = await fetch(`${API_URL}/documents/${documentId}/share`, {
+				method: 'POST',
+				headers: {
+					'Authorization': `Bearer ${token}`,
+					'Content-Type': 'application/json'
+				},
+				credentials: 'include',
+				body: JSON.stringify({ username })
+			});
+			
+			if (!res.ok) {
+				const data = await res.json();
+				throw new Error(data.detail || 'Failed to share');
+			}
+			
+			alert(`Document shared with ${username}`);
+			showShareModal = false;
+			shareUsername = '';
+			searchResults = [];
+		} catch (err) {
+			alert(err instanceof Error ? err.message : 'Failed to share document');
+		}
+	}
+
+	async function deleteDocument() {
+		if (!confirm('Are you sure you want to delete this document? This cannot be undone.')) {
+			return;
+		}
+		
+		const token = localStorage.getItem('access_token');
+		if (!token) return;
+		
+		try {
+			const res = await fetch(`${API_URL}/documents/${documentId}`, {
+				method: 'DELETE',
+				headers: { 'Authorization': `Bearer ${token}` },
+				credentials: 'include'
+			});
+			
+			if (!res.ok) throw new Error('Failed to delete document');
+			
+			goto('/documents');
+		} catch (err) {
+			alert(err instanceof Error ? err.message : 'Failed to delete document');
+		}
+	}
 	
 	function toggleVersions() {
 		showVersions = !showVersions;
@@ -185,15 +267,21 @@
 	<div class="document-viewer">
 		<div class="toolbar">
 			<div>
-				<a href="/documents" class="back-link">← Back to Documents</a>
+				<a href="/documents" class="back-link">⬅️ Back to Documents</a>
 				<h1>{document.title}</h1>
 				<p class="meta">
-					Version {document.current_version_number ?? 0} • 
+					Version {document.current_version_number ?? 0} 🎫 
 					Last modified {formatDate(document.last_modified_at)}
 				</p>
 			</div>
 			
 			<div class="actions">
+				<button onclick={() => showShareModal = true} class="secondary-btn">
+					Share
+				</button>
+				<button onclick={deleteDocument} class="delete-btn">
+					Delete
+				</button>
 				<button onclick={toggleVersions} class="secondary-btn">
 					{showVersions ? 'Hide' : 'Show'} Versions
 				</button>
@@ -280,6 +368,45 @@
 	</div>
 {/if}
 
+{#if showShareModal}
+	<div class="modal-backdrop" onclick={() => { showShareModal = false; shareUsername = ''; searchResults = []; }}>
+		<div class="modal" onclick={(e) => e.stopPropagation()}>
+			<h2>Share Document</h2>
+			
+			<div class="form-group">
+				<label for="search-user">Search for user</label>
+				<input 
+					id="search-user"
+					type="text" 
+					bind:value={shareUsername}
+					oninput={(e) => searchUsers(e.currentTarget.value)}
+					placeholder="Enter username..."
+				/>
+			</div>
+			
+			{#if searchLoading}
+				<p class="muted">Searching...</p>
+			{:else if searchResults.length > 0}
+				<div class="search-results">
+					{#each searchResults as user}
+						<button onclick={() => shareDocument(user.username)} class="user-result">
+							{user.username}
+						</button>
+					{/each}
+				</div>
+			{:else if shareUsername.length >= 2}
+				<p class="muted">No users found</p>
+			{/if}
+			
+			<div class="modal-actions">
+				<button onclick={() => { showShareModal = false; shareUsername = ''; searchResults = []; }} class="secondary-btn">
+					Cancel
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
+
 <style>
 	.loading {
 		text-align: center;
@@ -348,6 +475,19 @@
 	
 	.secondary-btn:hover {
 		border-color: var(--color-text);
+	}
+	
+	.delete-btn {
+		background: rgba(239, 68, 68, 0.2);
+		color: #fca5a5;
+		padding: 0.75rem 1.5rem;
+		border: 1px solid rgba(239, 68, 68, 0.3);
+		border-radius: 6px;
+	}
+	
+	.delete-btn:hover {
+		background: rgba(239, 68, 68, 0.3);
+		border-color: #fca5a5;
 	}
 	
 	.content-area {
@@ -484,5 +624,90 @@
 		color: var(--color-muted);
 		font-style: italic;
 		text-align: center;
+	}
+	
+	.modal-backdrop {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background: rgba(0, 0, 0, 0.8);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		z-index: 1000;
+	}
+	
+	.modal {
+		background: var(--color-surface);
+		border: var(--border);
+		border-radius: 12px;
+		padding: 2rem;
+		max-width: 500px;
+		width: 90%;
+		max-height: 80vh;
+		overflow-y: auto;
+	}
+	
+	.modal h2 {
+		margin-top: 0;
+	}
+	
+	.form-group {
+		margin-bottom: 1.5rem;
+	}
+	
+	.form-group label {
+		display: block;
+		margin-bottom: 0.5rem;
+		font-weight: 500;
+		color: var(--color-muted);
+	}
+	
+	.form-group input {
+		width: 100%;
+		padding: 0.75rem;
+		background: var(--color-bg);
+		border: var(--border);
+		border-radius: 6px;
+		color: var(--color-text);
+		font-family: var(--font-body);
+		font-size: 1rem;
+	}
+	
+	.form-group input:focus {
+		outline: none;
+		border-color: var(--color-primary);
+	}
+	
+	.search-results {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		margin-bottom: 1rem;
+	}
+	
+	.user-result {
+		background: var(--color-bg);
+		border: var(--border);
+		border-radius: 6px;
+		padding: 0.75rem;
+		text-align: left;
+		transition: all 0.2s;
+		width: 100%;
+		color: var(--color-text);
+	}
+	
+	.user-result:hover {
+		border-color: var(--color-primary);
+		background: var(--color-primary);
+	}
+	
+	.modal-actions {
+		display: flex;
+		justify-content: flex-end;
+		gap: 1rem;
+		margin-top: 1rem;
 	}
 </style>

@@ -158,22 +158,12 @@ This command pulls the official images for PostgreSQL and MongoDB, sets up the i
 To launch the entire system (Databases, Backend, and Frontend), run the following command in your terminal:
 
 ```bash
-docker-compose up --build
+docker-compose down && docker-compose up --build
 
 ```
 
 * **Frontend:** Access the UI at `http://localhost:7999`
 * **Backend:** Access the API docs at `http://localhost:8000/docs`
-
----
-
-## 🔑 Security (Authentication)
-
-We use **JWT (JSON Web Tokens)** to keep your data safe.
-
-1. **Login:** You provide your credentials to the `/login` endpoint.
-2. **Key:** If correct, the server gives your browser a "Digital Key" (the Token).
-3. **Permissions:** When you try to view or change a document, the server checks your key against the **PostgreSQL** records to make sure you have permission to access that specific version.
 
 ---
 

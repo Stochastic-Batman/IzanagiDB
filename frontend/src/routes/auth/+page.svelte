@@ -16,7 +16,6 @@
 		
 		try {
 			if (mode === 'signup') {
-				// Register
 				const registerRes = await fetch(`${API_URL}/auth/register`, {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
@@ -38,7 +37,7 @@
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ username, password }),
-				credentials: 'include' // Important: includes httpOnly cookie
+				credentials: 'include' // includes httpOnly cookie
 			});
 			
 			if (!loginRes.ok) {
@@ -47,13 +46,8 @@
 			}
 			
 			const data = await loginRes.json();
-			
-			// Store access token
 			localStorage.setItem('access_token', data.access_token);
-			
-			// Redirect to documents
 			goto('/documents');
-			
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'An error occurred';
 		} finally {
@@ -69,7 +63,7 @@
 
 <div class="auth-container">
 	<div class="auth-card">
-		<h1>{mode === 'login' ? 'Welcome Back' : 'Create Account'}</h1>
+		<h1>{mode === 'login' ? 'Here We Go Again...' : 'Create Account'}</h1>
 		<p class="subtitle">
 			{mode === 'login' 
 				? 'Access your version-controlled documents' 
