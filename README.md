@@ -37,17 +37,68 @@ Inside the Docker network, the apps talk to each other using internal names. You
 
 ```text
 IzanagiDB/
-├── backend/             # FastAPI Logic (Python 3.14)
-│   ├── app/
-│   │   ├── main.py      # Entry point
-│   │   ├── auth.py      # JWT & Login logic
-│   │   └── database.py  # Connections to Postgres/Mongo
-│   └── Dockerfile
-├── frontend/            # Svelte 5 (Port 7999)
-│   ├── src/
-│   └── Dockerfile
-└── docker-compose.yml   # Orchestrates the containers
-
+├── .gitignore
+├── README.md
+├── Design_Roadmap.md            # How I reasoned on system design
+├── docker-compose.yml           # Orchestrates all services
+├── generate_keys.py             # Generates RSA keys for JWT
+├── python_requirements.txt      # Python dependencies
+│
+├── backend/
+│   ├── Dockerfile               # Backend container definition
+│   └── app/
+│       ├── __init__.py
+│       ├── main.py              # FastAPI app entry point + CORS
+│       ├── config.py            # Environment variables & settings
+│       ├── database.py          # PostgreSQL & MongoDB connections
+│       ├── tables.py            # SQLAlchemy ORM models
+│       ├── schemas.py           # Pydantic validation schemas
+│       ├── auth.py              # JWT & password hashing logic
+│       ├── dependencies.py      # JWT authentication dependency
+│       ├── create_databases.sql # Database schema (for reference, not used)
+│       └── routes/
+│           ├── __init__.py
+│           ├── auth.py          # /auth endpoints (login, register, etc.)
+│           └── documents.py     # /documents endpoints (CRUD, versions)
+│
+└── frontend/
+    ├── Dockerfile               # Frontend container definition
+    ├── package.json             # Node dependencies
+    ├── package-lock.json
+    ├── vite.config.ts           # Vite config (port 7999)
+    ├── svelte.config.js         # SvelteKit config
+    ├── tsconfig.json            # TypeScript config
+    ├── .prettierrc              # Code formatting
+    ├── .prettierignore
+    ├── .npmrc
+    ├── .gitignore
+    ├── README.md
+    │
+    ├── static/
+    │   └── robots.txt
+    │
+    └── src/
+        ├── app.html              # HTML template
+        ├── app.d.ts              # TypeScript declarations
+        ├── lib/
+        │   ├── index.ts
+        │   ├── styles.css        # Global CSS variables & fonts
+        │   ├── assets/
+        │   │   └── favicon.svg
+        │   └── components/
+        │       └── Nav.svelte    # Navigation component
+        │
+        └── routes/
+            ├── +page.svelte      # Home page (/)
+            ├── +layout.svelte    # Global layout with Nav
+            │
+            ├── auth/
+            │   └── +page.svelte  # Login/Signup page (/auth)
+            │
+            └── documents/
+                ├── +page.svelte  # Document list (/documents)
+                └── [id]/
+                    └── +page.svelte  # Document viewer/editor (/documents/[id])
 ```
 ---
 
